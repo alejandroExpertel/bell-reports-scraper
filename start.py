@@ -40,8 +40,8 @@ automation = Automation(driver)
 
 automation.login(user)
 automation.look_for_reports()
-automation.select_date_range('Jan 2023')
+#automation.select_date_range('Jan 2023')
 automation.select_and_download()
 end_time = time.time()
 
-print(end_time - start_time)
+print(f"It took: {end_time - start_time}")
