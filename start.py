@@ -33,7 +33,7 @@ def start_automation_driver(user, server, date=None) -> webdriver:
 
 start_time = time.time()
 
-user = User("abbott@expertel.ca", "CeLLphone647")
+user = User(args.email, args.password)
 driver = start_automation_driver(user, args.server)
 automation = Automation(driver)
 
