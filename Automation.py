@@ -3,11 +3,13 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
+from urllib.parse import urlparse, unquote
 from selenium import webdriver
 import time
-import urllib
+import logging
 import os
-from urllib.parse import urlparse, unquote
+
+logging.basicConfig(filename='bell_reports.log', level=logging.DEBUG)
 
 
 class Automation:
@@ -30,12 +32,19 @@ class Automation:
         login_button = self.driver.find_element(
             By.XPATH, "//button[@id='submitBtn']")
         login_button.click()
+        # html is using a javascript framework, so we have to wait for javascript requests to finish, for that we will use time.sleep
+        time.sleep(30)
 
     def look_for_reports(self):
-        # html is using a javascript framework, so we have to wait for javascript requests to finish, for that we will use time.sleep
-        time.sleep(60)
-        reports_tab = self.wait120.until(EC.presence_of_element_located(
-            (By.XPATH, "//header/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/nav[1]/ul[1]/li[4]")))
+        try:
+            reports_tab = self.wait120.until(EC.presence_of_element_located(
+                (By.XPATH, "//header/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/nav[1]/ul[1]/li[4]")))
+        except Exception as error:
+            logging.error(error)
+            # should trigger captcha and then retake flow starting with reports tab
+            reports_tab = self.wait120.until(EC.presence_of_element_located(
+                (By.XPATH, "//header/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/nav[1]/ul[1]/li[4]")))
+
         actions = ActionChains(self.driver)
         actions.move_to_element(reports_tab).perform()
 
@@ -43,7 +52,7 @@ class Automation:
             By.XPATH, "//header/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[2]/nav[1]/ul[1]/li[4]/div[1]/ul[1]/li[1]/a[1]")
         e_reporting.click()
 
-        time.sleep(60)
+        time.sleep(30)
 
         # get tabs open
         handles = self.driver.window_handles
@@ -52,6 +61,22 @@ class Automation:
             By.XPATH, "//a[contains(text(),'Standard reports')]")
         standard_reports.click()
         time.sleep(20)
+
+    def select_date_range(self, from_date=None, to_date=None):
+        if from_date is not None:
+            from_select = Select(self.driver.find_element(
+                By.XPATH, "//select[@id='fromReportDate']"))
+            from_select.select_by_visible_text(from_date)
+
+        if to_date is not None:
+            to_select = Select(self.driver.find_element(
+                By.XPATH, "//select[@id='toReportDate']"))
+            to_select.select_by_visible_text(to_date)
+
+        apply_button = self.driver.find_element(By.XPATH,"//input[@id='btnApply']")
+        apply_button.click()        
+
+        time.sleep(15*3)
 
     def select_and_download(self):
         # select other options
@@ -63,7 +88,7 @@ class Automation:
             print(f"getting: {key}")
             try:
                 select.select_by_value(value)
-                time.sleep(5)
+                time.sleep(10)
                 excel_image = self.driver.find_element(
                     By.XPATH, "//body/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[4]/img[2]")
                 excel_image.click()
@@ -71,8 +96,7 @@ class Automation:
             except Exception:
                 print(f"something happened with {key}")
 
-        time.sleep(60*8)
-        directory_path = os.getcwd()
+        time.sleep(60*5)
         status_board = self.driver.find_element(
             By.XPATH, "//body/div[@id='reportStatusBar']/div[@id='reportStatusBarContent']/div[@id='reportStatusBarRequests']/table[1]")
         rows = status_board.find_elements(By.TAG_NAME, "tr")
@@ -87,4 +111,4 @@ class Automation:
             filename = unquote(filename).replace('+', ' ')
             print(f"downloaded filename: {filename}")
 
-        time.sleep(60*2)  # time to wait for download.
+        time.sleep(15*2)  # time to wait for download.
