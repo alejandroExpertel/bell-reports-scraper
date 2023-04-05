@@ -12,7 +12,7 @@ import time
 parser = argparse.ArgumentParser(description='Start scraper')
 parser.add_argument('--email', help='bell email')
 parser.add_argument('--password', help='bell password')
-parser.add_argument('--server', help='macOS or Windows')
+parser.add_argument('--server', help='macOS or windows')
 
 args = parser.parse_args()
 

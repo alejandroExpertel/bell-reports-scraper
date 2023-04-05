@@ -3,6 +3,7 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.select import Select
+from bell_auth_code import BellAuthorizationCode
 from urllib.parse import urlparse, unquote
 from selenium import webdriver
 import time
@@ -33,7 +34,38 @@ class Automation:
             By.XPATH, "//button[@id='submitBtn']")
         login_button.click()
         # html is using a javascript framework, so we have to wait for javascript requests to finish, for that we will use time.sleep
-        time.sleep(30)
+        time.sleep(20)
+
+        try:
+            # check if we need to act on 2FA
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.ID, 'verificationCode')))
+            print("Found 2FA")
+
+            # create now so we can track time
+            bell_authorization = BellAuthorizationCode()
+
+            element = self.driver.find_element(By.ID, 'smsSelect')
+            element.click()
+            element = self.driver.find_element_by_css_selector(
+                'button[name="btn_save"]')
+            element.click()
+
+            # we have sent the text message, now we need to read from the server
+
+            code = bell_authorization.getCode()
+            print("Received code " + code)
+            self.driver.find_element_by_id(
+                'verificationCode').send_keys(code)
+
+            element = self.driver.find_element_by_id('continueButton')
+            element.click()
+            time.sleep(10)
+
+        except Exception as error:
+            print("did not find 2FA")
+            logging.error(error)
+            pass
 
     def look_for_reports(self):
         try:
@@ -73,8 +105,8 @@ class Automation:
                 By.XPATH, "//select[@id='toReportDate']"))
             to_select.select_by_visible_text(to_date)
 
-        apply_button = self.driver.find_element(By.XPATH,"//input[@id='btnApply']")
-        apply_button.click()        
+        apply_button = self.driver.find_element(By.XPATH, "//input[@id='btnApply']")
+        apply_button.click()
 
         time.sleep(15*3)
 
@@ -95,6 +127,7 @@ class Automation:
                 records = records + 1
             except Exception:
                 print(f"something happened with {key}")
+                logging.error(f"something happened with {key}")
 
         time.sleep(60*5)
         status_board = self.driver.find_element(
